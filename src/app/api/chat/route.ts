@@ -46,31 +46,45 @@ export async function POST(req: Request) {
 
   try {
     const result = await withStore((store) => {
-      const user = store.users[gate.user.id];
-      if (!user) throw new Error("User missing");
-      const updated = debitOrThrow(user, cascade.creditsDebited);
-      updated.chatsTotal += 1;
-      if (cascade.usedCheapPath) updated.cheapPathCount += 1;
-      store.users[user.id] = updated;
+  // Fallback guest user if ephemeral storage was wiped on Netlify
+  const userId = gate.user?.id || "guest-user";
+  if (!store.users) {
+    store.users = {};
+  }
+  if (!store.users[userId]) {
+    store.users[userId] = {
+      id: userId,
+      name: "Guest",
+      credits: 100, // or your default demo credits
+      chatsTotal: 0,
+      cheapPathCount: 0,
+    };
+  }
+  
+  const user = store.users[userId];
+  const updated = debitOrThrow(user, cascade.creditsDebited);
+  updated.chatsTotal += 1;
+  if (cascade.usedCheapPath) updated.cheapPathCount += 1;
+  store.users[user.id] = updated;
 
-      const now = new Date().toISOString();
-      const userMsg: ChatMessage = {
-        id: newId("msg"),
-        role: "user",
-        content: prompt,
-        createdAt: now,
-      };
-      const assistantMsg: ChatMessage = {
-        id: newId("msg"),
-        role: "assistant",
-        content: cascade.finalAnswer,
-        createdAt: now,
-        cascade,
-      };
-      const thread = store.chats[user.id] ?? [];
-      store.chats[user.id] = [...thread, userMsg, assistantMsg];
-      return { user: updated, userMsg, assistantMsg };
-    }, true);
+  const now = new Date().toISOString();
+  const userMsg: ChatMessage = {
+    id: newId("msg"),
+    role: "user",
+    content: prompt,
+    createdAt: now,
+  };
+  const assistantMsg: ChatMessage = {
+    id: newId("msg"),
+    role: "assistant",
+    content: cascade.finalAnswer,
+    createdAt: now,
+    cascade,
+  };
+  const thread = store.chats[user.id] ?? [];
+  store.chats[user.id] = [...thread, userMsg, assistantMsg];
+  return { user: updated, userMsg, assistantMsg };
+}, true);
 
     const snapshot = await getSnapshot(result.user);
     return NextResponse.json({
