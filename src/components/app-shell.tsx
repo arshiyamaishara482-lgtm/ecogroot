@@ -1,22 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import {
   Clapperboard,
+  ScrollText,
   LayoutDashboard,
   MessageSquare,
   NotebookPen,
   Pin,
+  Plus,
   Sparkles,
 } from "lucide-react";
 import { LeafMark } from "@/components/leaf-mark";
 import { PlanBadge } from "@/components/plan-badge";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/components/wallet-context";
-import { formatCredits, formatPct } from "@/lib/format";
+import {
+  buildConversations,
+  FIRST_CHAT_ID,
+  newConversationId,
+} from "@/lib/conversations";
+import { formatCredits } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+const ADMIN_NAV = { href: "/app/logs", label: "Activity log", icon: ScrollText };
 
 const NAV = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
@@ -27,11 +36,26 @@ const NAV = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { snapshot } = useWallet();
-  const { user, memories, cascadeSaveRate } = snapshot;
+  const { user, memories, isAdmin } = snapshot;
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  const conversations = useMemo(
+    () => buildConversations(snapshot.chats),
+    [snapshot.chats],
+  );
+  // The chat that is open right now (only while you are on the chat page).
+  const activeChatId = pathname.startsWith("/app/chat")
+    ? (searchParams.get("c") ?? conversations[0]?.id ?? FIRST_CHAT_ID)
+    : null;
+
+  function startNewChat() {
+    setMobileOpen(false);
+    router.push(`/app/chat?c=${newConversationId()}`);
+  }
 
   async function logout() {
     setLoggingOut(true);
@@ -42,7 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const nav = (
     <nav className="flex flex-col gap-1">
-      {NAV.map((item) => {
+      {(isAdmin ? [...NAV, ADMIN_NAV] : NAV).map((item) => {
         const active =
           item.href === "/app"
             ? pathname === "/app"
@@ -68,8 +92,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </nav>
   );
 
+  const chatList = (
+    <div className="mt-4 flex min-h-0 flex-1 flex-col">
+      <div className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        Chats
+      </div>
+      {conversations.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          No chats yet. Click New chat to start one.
+        </p>
+      ) : (
+        <ul className="max-h-72 space-y-0.5 overflow-y-auto pr-1 md:max-h-none">
+          {conversations.map((c) => (
+            <li key={c.id}>
+              <Link
+                href={`/app/chat?c=${encodeURIComponent(c.id)}`}
+                onClick={() => setMobileOpen(false)}
+                title={c.title}
+                className={cn(
+                  "block truncate rounded-md px-2.5 py-1.5 text-sm",
+                  c.id === activeChatId
+                    ? "bg-muted font-medium text-foreground"
+                    : "text-foreground/80 hover:bg-muted/60",
+                )}
+              >
+                {c.title || "Chat"}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   const memoryList = (
-    <div className="mt-4 min-h-0 flex-1">
+    <div className="mt-3 max-h-40 shrink-0 overflow-y-auto">
       <div className="mb-2 flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
         <NotebookPen className="size-3.5" />
         Creative memory
@@ -128,11 +185,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {formatCredits(user.credits)}{" "}
           <span className="text-xs text-muted-foreground">usage left</span>
         </div>
-        <div className="text-[11px] text-muted-foreground">
-          Cascade save {formatPct(cascadeSaveRate)}
-        </div>
       </div>
+      <Button
+        className="mb-3 w-full justify-start gap-2"
+        onClick={startNewChat}
+      >
+        <Plus className="size-4" />
+        New chat
+      </Button>
       {nav}
+      {chatList}
       {memoryList}
       <div className="mt-auto pt-4">
         <p className="mb-2 text-[11px] text-muted-foreground">{user.displayName}</p>

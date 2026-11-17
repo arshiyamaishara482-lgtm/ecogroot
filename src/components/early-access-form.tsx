@@ -1,8 +1,8 @@
 "use client";
 
-import { OpenAccessForm } from "@/components/open-access-form";
+import { AuthForm } from "@/components/auth-form";
 
 /** Legacy name — Limited product is open to everyone. */
 export function EarlyAccessForm({ compact = false }: { compact?: boolean }) {
-  return <OpenAccessForm compact={compact} />;
+  return <AuthForm initialMode="signup" compact={compact} />;
 }

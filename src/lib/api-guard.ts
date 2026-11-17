@@ -2,23 +2,23 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "./session";
 import type { User } from "./types";
 
+/**
+ * Every protected API needs a real, logged-in user. The old "guest-user"
+ * fallback is gone: it made questions show up under a fake user and it hid
+ * the real wallet, so counts never matched.
+ */
 export async function requireUser(): Promise<
   { user: User; response?: never } | { user?: never; response: NextResponse }
 > {
-  const existingUser = await getSessionUser();
-  
-  // Fallback guest user for Netlify's ephemeral serverless environment
-  const user = existingUser || ({
-    id: "guest-user",
-    name: "Guest",
-    email: "guest@ecogroot.local",
-    plan: "free",
-    credits: 100,
-    chatsTotal: 0,
-    cheapPathCount: 0,
-    createdAt: new Date().toISOString(),
-  } as unknown as User);
-
+  const user = await getSessionUser();
+  if (!user) {
+    return {
+      response: NextResponse.json(
+        { error: "Please log in to continue." },
+        { status: 401 }
+      ),
+    };
+  }
   return { user };
 }
 

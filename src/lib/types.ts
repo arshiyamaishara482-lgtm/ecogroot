@@ -12,6 +12,47 @@ export type User = {
   createdAt: string;
   inviteCode?: string;
   accessTier?: "early" | "founding";
+  /** Sign-up details (the password is NOT here - see Account). */
+  email?: string;
+  phone?: string;
+  /** Running total of tokens (in + out) this user has spent on questions. */
+  tokensUsed?: number;
+};
+
+/** Private login data. Kept apart from User so it is never sent to the browser. */
+export type Account = {
+  userId: string;
+  email: string;
+  passwordHash: string;
+  passwordSalt: string;
+};
+
+export type ActivityType =
+  | "signup"
+  | "login"
+  | "login_failed"
+  | "logout"
+  | "question";
+
+export type ActivityEvent = {
+  id: string;
+  type: ActivityType;
+  at: string;
+  userId: string | null;
+  name: string;
+  email: string;
+  phone?: string;
+  /** question events only */
+  question?: string;
+  tokensIn?: number;
+  tokensOut?: number;
+  tokensTotal?: number;
+  /** this user's running token total AFTER this question */
+  userTokensTotal?: number;
+  creditsDebited?: number;
+  creditsLeft?: number;
+  path?: "cheap" | "escalated";
+  model?: string;
 };
 
 export type MemoryNote = {
@@ -66,6 +107,8 @@ export type ChatMessage = {
   content: string;
   createdAt: string;
   cascade?: CascadeResult;
+  /** Which conversation (chat thread) this message belongs to. Old messages have none. */
+  conversationId?: string;
 };
 
 export type VideoTier = "eco" | "premium";
@@ -113,6 +156,7 @@ export type InviteRecord = {
 
 export type StoreFile = {
   users: Record<string, User>;
+  accounts: Record<string, Account>;
   sessions: Record<string, string>;
   memories: Record<string, MemoryNote[]>;
   chats: Record<string, ChatMessage[]>;
@@ -121,6 +165,8 @@ export type StoreFile = {
   invites: Record<string, InviteRecord>;
   /** Per-user optional free-tier API keys (settings page). */
   apiKeys: Record<string, UserApiKeys>;
+  /** Sign-ups, log-ins and questions, newest last. Capped in lib/activity.ts. */
+  activity: ActivityEvent[];
 };
 
 export type PublicSnapshot = {
@@ -129,6 +175,7 @@ export type PublicSnapshot = {
   memories: MemoryNote[];
   chats: ChatMessage[];
   videos: VideoJob[];
+  isAdmin?: boolean;
 };
 
 export type WaitlistStats = {

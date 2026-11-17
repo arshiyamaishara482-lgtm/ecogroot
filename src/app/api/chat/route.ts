@@ -6,6 +6,7 @@ import {
   isChatEcoMode,
   modeFromHoney,
 } from "@/lib/chat-modes";
+import { pushActivity } from "@/lib/activity";
 import { debitOrThrow } from "@/lib/plans";
 import { getSnapshot } from "@/lib/session";
 import { newId, withStore } from "@/lib/store";
@@ -18,9 +19,14 @@ export async function POST(req: Request) {
   const gate = await requireUser();
   if (gate.response) return gate.response;
 
-  let body: { prompt?: string; ecoSkill?: boolean; mode?: string };
+  let body: {
+    prompt?: string;
+    ecoSkill?: boolean;
+    mode?: string;
+    conversationId?: string;
+  };
   try {
-    body = (await req.json()) as { prompt?: string; ecoSkill?: boolean; mode?: string };
+    body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -32,6 +38,10 @@ export async function POST(req: Request) {
   if (prompt.length > 8000) {
     return NextResponse.json({ error: "Prompt is too long" }, { status: 400 });
   }
+
+  // Which chat thread is this question part of? (a new chat sends a fresh id)
+  const rawConv = typeof body.conversationId === "string" ? body.conversationId : "";
+  const conversationId = /^[\w-]{1,60}$/.test(rawConv) ? rawConv : newId("conv");
 
   const mode = isChatEcoMode(body.mode)
     ? body.mode
@@ -46,18 +56,17 @@ export async function POST(req: Request) {
 
   try {
     const result = await withStore((store) => {
-      // Ensure the store has a users dictionary and seed the current user if missing from ephemeral storage
-      if (!store.users) {
-        store.users = {};
-      }
-      if (!store.users[gate.user.id]) {
-        store.users[gate.user.id] = gate.user;
-      }
-
+      // Always work on the STORED user so the wallet only ever goes down.
       const user = store.users[gate.user.id];
+      if (!user) throw new Error("Account not found. Please log in again.");
+
       const updated = debitOrThrow(user, cascade.creditsDebited);
+      const tokensIn = cascade.impact.tokensIn;
+      const tokensOut = cascade.impact.tokensOut;
+      const tokensTotal = tokensIn + tokensOut;
       updated.chatsTotal += 1;
       if (cascade.usedCheapPath) updated.cheapPathCount += 1;
+      updated.tokensUsed = (updated.tokensUsed ?? 0) + tokensTotal;
       store.users[user.id] = updated;
 
       const now = new Date().toISOString();
@@ -66,6 +75,7 @@ export async function POST(req: Request) {
         role: "user",
         content: prompt,
         createdAt: now,
+        conversationId,
       };
       const assistantMsg: ChatMessage = {
         id: newId("msg"),
@@ -73,9 +83,28 @@ export async function POST(req: Request) {
         content: cascade.finalAnswer,
         createdAt: now,
         cascade,
+        conversationId,
       };
       const thread = store.chats[user.id] ?? [];
       store.chats[user.id] = [...thread, userMsg, assistantMsg];
+
+      // One log row per question, with the real user's details.
+      pushActivity(store, {
+        type: "question",
+        userId: user.id,
+        name: user.displayName,
+        email: user.email ?? "—",
+        phone: user.phone,
+        question: prompt,
+        tokensIn,
+        tokensOut,
+        tokensTotal,
+        userTokensTotal: updated.tokensUsed,
+        creditsDebited: cascade.creditsDebited,
+        creditsLeft: updated.credits,
+        path: cascade.usedCheapPath ? "cheap" : "escalated",
+        model: cascade.modelSource,
+      });
       return { user: updated, userMsg, assistantMsg };
     }, true);
 

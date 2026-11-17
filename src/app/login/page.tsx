@@ -1,11 +1,16 @@
 import Link from "next/link";
-import { OpenAccessForm } from "@/components/open-access-form";
+import { AuthForm } from "@/components/auth-form";
 import { LeafMark } from "@/components/leaf-mark";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BUILDING_PHASE } from "@/lib/constants";
 import { describeFreeStack } from "@/lib/free-models";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const { mode } = await searchParams;
   const stack = describeFreeStack();
 
   return (
@@ -17,18 +22,13 @@ export default function LoginPage() {
           <div className="mb-2 flex items-center gap-2">
             <LeafMark className="size-8" />
             <div>
-              <CardTitle>Open Limited free</CardTitle>
+              <CardTitle>Eco Groot account</CardTitle>
               <p className="text-xs text-muted-foreground">{BUILDING_PHASE}</p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            The limited product is open to everyone. Cascade-Verify uses free model APIs
-            (small first → judge → large only if needed) so you get more chats from the same free
-            budget than general always-large usage.
-          </p>
-          <OpenAccessForm />
+          <AuthForm initialMode={mode === "signup" ? "signup" : "login"} />
           <div className="rounded-lg bg-emerald-50 p-3 text-xs text-emerald-900/80">
             <div className="font-medium">Free model stack</div>
             <ul className="mt-1 space-y-0.5">

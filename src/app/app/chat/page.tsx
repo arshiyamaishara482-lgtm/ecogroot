@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CascadePipeline } from "@/components/cascade-pipeline";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useWallet } from "@/components/wallet-context";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  CHAT_ECO_MODES,
-  DEFAULT_CHAT_ECO_MODE,
-  type ChatEcoMode,
-} from "@/lib/chat-modes";
 import {
   formatCo2,
   formatKwh,
@@ -18,44 +14,69 @@ import {
   formatWater,
 } from "@/lib/format";
 import type { ChatMessage, PublicSnapshot } from "@/lib/types";
-import { cn } from "@/lib/utils";
-
-const EXAMPLES = [
-  { label: "Capital of Bangladesh", prompt: "What is the capital of Bangladesh?" },
-  { label: "Composting", prompt: "What is composting? Summarize in 3 bullets." },
-  {
-    label: "Quantization",
-    prompt:
-      "Define quantization in one short paragraph for a GPU operator. Mention VRAM, not product memory.",
-  },
-  {
-    label: "Hard math",
-    prompt: "Prove that the square root of 2 is irrational.",
-  },
-];
+import { EXAMPLES } from "@/lib/examples";
+import {
+  buildConversations,
+  convoOf,
+  FIRST_CHAT_ID,
+} from "@/lib/conversations";
 
 export default function ChatPage() {
+  const router = useRouter();
   const { snapshot, setSnapshot } = useWallet();
   const [prompt, setPrompt] = useState("");
-  const [mode, setMode] = useState<ChatEcoMode>(DEFAULT_CHAT_ECO_MODE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pinBusy, setPinBusy] = useState<string | null>(null);
   const [pendingUser, setPendingUser] = useState<string | null>(null);
+  const [pendingConvId, setPendingConvId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Which chat is open is decided by the sidebar through the address (?c=...).
+  const searchParams = useSearchParams();
+  const conversations = useMemo(
+    () => buildConversations(snapshot.chats),
+    [snapshot.chats],
+  );
+  const activeId =
+    searchParams.get("c") ?? conversations[0]?.id ?? FIRST_CHAT_ID;
+
+  const messages = useMemo(
+    () => snapshot.chats.filter((m) => convoOf(m) === activeId),
+    [snapshot.chats, activeId],
+  );
+
+  const showPending = Boolean(pendingUser) && pendingConvId === activeId;
+
   const lastAssistant = useMemo(() => {
-    const msgs = snapshot.chats.filter((m) => m.role === "assistant");
+    const msgs = messages.filter((m) => m.role === "assistant");
     return msgs[msgs.length - 1] ?? null;
-  }, [snapshot.chats]);
+  }, [messages]);
+
+  // Quick-start buttons on the dashboard open /app/chat?c=...&q=question.
+  // Send that question once, then clean it out of the address.
+  const autoSent = useRef(false);
+  const quickQuestion = searchParams.get("q");
+  useEffect(() => {
+    if (!quickQuestion || autoSent.current) return;
+    const timer = setTimeout(() => {
+      autoSent.current = true;
+      void send(quickQuestion);
+      router.replace(`/app/chat?c=${encodeURIComponent(activeId)}`);
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickQuestion]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [snapshot.chats.length, pendingUser, busy]);
+  }, [messages.length, activeId, showPending, busy]);
 
   async function send(nextPrompt?: string) {
     const text = (nextPrompt ?? prompt).trim();
     if (!text || busy) return;
+    const conversationId = activeId;
+    setPendingConvId(conversationId);
     setBusy(true);
     setError(null);
     setPrompt("");
@@ -64,16 +85,21 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, mode }),
+        body: JSON.stringify({ prompt: text, conversationId }),
       });
       const json = (await res.json()) as PublicSnapshot & {
         error?: string;
         assistantMessage?: ChatMessage;
       };
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
       if (!res.ok) {
         throw new Error(json.error ?? `Chat failed (${res.status})`);
       }
       setSnapshot({
+        isAdmin: json.isAdmin ?? snapshot.isAdmin,
         user: json.user,
         cascadeSaveRate: json.cascadeSaveRate,
         memories: json.memories,
@@ -123,27 +149,9 @@ export default function ChatPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Chat</h1>
           <p className="text-sm text-muted-foreground">
-            Ask anything — Eco AI routes free models automatically (small first, escalate only if
+            Ask anything — Eco Groot routes free models automatically (small first, escalate only if
             needed).
           </p>
-        </div>
-        <div className="flex rounded-lg border border-foreground/10 p-0.5 text-xs">
-          {CHAT_ECO_MODES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setMode(item.id)}
-              className={cn(
-                "rounded-md px-3 py-1.5 font-medium transition",
-                mode === item.id
-                  ? "bg-emerald-600 text-white"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-              title={item.blurb}
-            >
-              {item.label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -169,16 +177,16 @@ export default function ChatPage() {
       ) : null}
 
       <div className="flex-1 space-y-4 pb-4">
-        {snapshot.chats.length === 0 && !pendingUser ? (
+        {messages.length === 0 && !showPending ? (
           <div className="rounded-xl border border-dashed px-4 py-16 text-center">
-            <p className="text-base font-medium text-foreground">Ask Eco AI anything</p>
+            <p className="text-base font-medium text-foreground">Ask Eco Groot anything</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Free open models answer first. Stats stay tucked away unless you open details.
             </p>
           </div>
         ) : null}
 
-        {snapshot.chats.map((msg) =>
+        {messages.map((msg) =>
           msg.role === "user" ? (
             <div key={msg.id} className="flex justify-end">
               <div className="max-w-[min(42rem,92%)] rounded-2xl bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground whitespace-pre-wrap">
@@ -233,7 +241,7 @@ export default function ChatPage() {
           ),
         )}
 
-        {pendingUser ? (
+        {showPending ? (
           <>
             <div className="flex justify-end">
               <div className="max-w-[min(42rem,92%)] rounded-2xl bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground whitespace-pre-wrap">
@@ -266,14 +274,14 @@ export default function ChatPage() {
               void send();
             }
           }}
-          placeholder="Message Eco AI…"
+          placeholder="Message Eco Groot…"
           rows={2}
           disabled={busy}
           className="min-h-[64px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
         />
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            {mode === "ultra-eco" ? "Ultra Eco" : "Eco-Cascade"} · Enter to send
+            Enter to send · Shift+Enter for a new line
           </p>
           <Button type="submit" disabled={busy || !prompt.trim()}>
             {busy ? "Sending…" : "Send"}

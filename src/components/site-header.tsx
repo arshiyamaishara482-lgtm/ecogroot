@@ -55,13 +55,13 @@ export function SiteHeader() {
             href="/login"
             className="inline-flex h-7 items-center rounded-lg border border-emerald-300/40 bg-transparent px-2.5 text-[0.8rem] font-medium text-emerald-50 transition hover:bg-emerald-500/15 hover:text-white"
           >
-            Sign in
+            Log in
           </Link>
           <Link
-            href="/open"
+            href="/login?mode=signup"
             className="inline-flex h-7 items-center rounded-lg bg-lime-300 px-2.5 text-[0.8rem] font-medium text-emerald-950 transition hover:bg-lime-200"
           >
-            Open Limited free
+            Sign up free
           </Link>
           <button
             type="button"

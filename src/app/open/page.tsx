@@ -1,6 +1,6 @@
 import { MarketingShell } from "@/components/marketing-shell";
 import { FadeIn, PageMotion } from "@/components/motion";
-import { OpenAccessForm } from "@/components/open-access-form";
+import { AuthForm } from "@/components/auth-form";
 import { PageHero } from "@/components/page-hero";
 import { WaitlistForm } from "@/components/waitlist-form";
 
@@ -27,13 +27,12 @@ export default function OpenPage() {
               <ul className="space-y-2 text-sm text-emerald-100/80">
                 <li>· Pollinations public free API (no key) + optional Groq / Gemini / OpenRouter free</li>
                 <li>· Small path uses less of your pool than escalate</li>
-                <li>· Ultra Eco (default) or Eco-Cascade mode in chat</li>
                 <li>· Waitlist is optional — for product updates only</li>
               </ul>
               <div className="mt-8 rounded-2xl border border-lime-200/20 bg-white p-4 text-emerald-950 shadow-lg">
                 <div className="text-xs tracking-wide text-emerald-700 uppercase">Start now</div>
                 <div className="mt-3">
-                  <OpenAccessForm compact />
+                  <AuthForm initialMode="signup" compact />
                 </div>
               </div>
             </FadeIn>
