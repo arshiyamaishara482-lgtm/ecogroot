@@ -1,6 +1,6 @@
 /**
  * Notify Eco AI ops on WhatsApp when someone joins the waiting list.
- * Phone: Bangladesh local 01852044051 → international 8801852044051
+ * The phone number is set in src/lib/contact.ts
  *
  * Auto-send options (optional env):
  * - CALLMEBOT_APIKEY — https://www.callmebot.com/blog/free-api-whatsapp-messages/
@@ -11,8 +11,12 @@
  * to that number (works without API keys when the submitter confirms send).
  */
 
-export const WAITLIST_WHATSAPP_PHONE_LOCAL = "01852044051";
-export const WAITLIST_WHATSAPP_PHONE_E164 = "8801852044051";
+import {
+  WAITLIST_WHATSAPP_PHONE_E164,
+  WAITLIST_WHATSAPP_PHONE_LOCAL,
+} from "./contact";
+
+export { WAITLIST_WHATSAPP_PHONE_E164, WAITLIST_WHATSAPP_PHONE_LOCAL };
 
 export type WhatsAppNotifyResult = {
   sent: boolean;

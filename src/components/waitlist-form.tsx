@@ -1,5 +1,6 @@
 "use client";
 
+import { WAITLIST_WHATSAPP_PHONE_LOCAL } from "@/lib/contact";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { WaitlistInterest, WaitlistStats } from "@/lib/types";
@@ -257,7 +258,7 @@ export function WaitlistForm({
       </button>
       <p className="text-xs text-emerald-100/60">
         {early
-          ? "Submitting notifies Eco Groot on WhatsApp (01852044051) with your details. Limited is also open free anytime."
+          ? `Submitting notifies Eco Groot on WhatsApp (${WAITLIST_WHATSAPP_PHONE_LOCAL}) with your details. Limited is also open free anytime.`
           : "Optional updates only — the Limited product is already open to everyone."}
       </p>
     </form>

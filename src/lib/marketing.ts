@@ -1,3 +1,4 @@
+import { WAITLIST_WHATSAPP_PHONE_LOCAL } from "@/lib/contact";
 import {
   PLAN_CREDITS,
   PLAN_FEATURES,
@@ -60,7 +61,7 @@ export const HOW_IT_WORKS_FLOW = [
 export const HOW_IT_WORKS_SIMPLE = [
   {
     title: "You ask something",
-    body: "You send a message. Eco Groot spends credits from your wallet — like tickets for each chat.",
+    body: "You send a message. Eco AI spends credits from your wallet — like tickets for each chat.",
   },
   {
     title: "It tries to stay short (Honey / Eco skill)",
@@ -76,7 +77,7 @@ export const HOW_IT_WORKS_SIMPLE = [
   },
   {
     title: "Only then might a bigger model help",
-    body: "If the first answer fails, a larger free model tries again. If it passed, Eco Groot stops there and saves the bigger call — better for cost, energy, and water estimates.",
+    body: "If the first answer fails, a larger free model tries again. If it passed, Eco AI stops there and saves the bigger call — better for cost, energy, and water estimates.",
   },
   {
     title: "You see the reply and rough impact",
@@ -139,7 +140,7 @@ export const COMPARE_ROWS = [
 
 /**
  * Public order-of-magnitude estimates for a short text prompt.
- * Frontier figures are published estimates (not our lab). Eco Groot rows are
+ * Frontier figures are published estimates (not our lab). Eco AI rows are
  * demo heuristics from token counts — labeled estimates, not metered GPUs.
  */
 export const ENERGY_WATER_COMPARE = [
@@ -174,13 +175,13 @@ export const ENERGY_WATER_COMPARE = [
     note: "WaPo + UC Riverside 2024 for a ~100-word GPT-4 email — higher bound",
   },
   {
-    name: "Eco Groot cheap path (demo)",
+    name: "Eco AI cheap path (demo)",
     energy: "~0.003 Wh",
     water: "~0.005 mL",
     note: "Our token heuristic on a short PASS — estimate only, not measured",
   },
   {
-    name: "Eco Groot escalate path (demo)",
+    name: "Eco AI escalate path (demo)",
     energy: "~0.04 Wh",
     water: "~0.07 mL",
     note: "Same prompt after FAIL → large free model — still a labeled estimate",
@@ -188,7 +189,7 @@ export const ENERGY_WATER_COMPARE = [
 ] as const;
 
 /**
- * Estimated savings = published frontier short-prompt figure minus  Eco Groot demo path.
+ * Estimated savings = published frontier short-prompt figure minus Eco AI demo path.
  * All deltas are labeled estimates for product storytelling — not metered savings.
  */
 export const IMPACT_SAVINGS = [
@@ -269,9 +270,9 @@ export const IMPACT_SOURCES = [
     href: "https://www.washingtonpost.com/technology/2024/09/18/energy-ai-use-electricity-water-data-centers/",
   },
   {
-    label: "Eco Groot demo rows & “savings”",
+    label: "Eco AI demo rows & “savings”",
     detail:
-      "Not third-party research. Built from Eco Groot's token heuristics in src/lib/impact.ts (~0.35 J/token small path, ~2.6 J/token escalate, water ≈ energy×1900 mL/kWh). Savings = frontier estimate − Eco demo path. Useful for relative storytelling; not metered GPU/PUE proof.",
+      "Not third-party research. Built from Eco AI’s token heuristics in src/lib/impact.ts (~0.35 J/token small path, ~2.6 J/token escalate, water ≈ energy×1900 mL/kWh). Savings = frontier estimate − Eco demo path. Useful for relative storytelling; not metered GPU/PUE proof.",
     href: "/how-its-done",
   },
 ] as const;
@@ -331,7 +332,7 @@ export const ROADMAP_PHASES = [
 
 export const FAQ_ITEMS = [
   {
-    q: "Is Eco Groot free ChatGPT / OpenAI access?",
+    q: "Is Eco AI free ChatGPT / OpenAI access?",
     a: "No. It is a credit-wallet product that cascades free-tier model APIs (Pollinations public free, plus optional Groq/Gemini/OpenRouter :free). You are not getting OpenAI tokens — you get more free chats by keeping easy prompts on the small path.",
   },
   {
@@ -348,11 +349,11 @@ export const FAQ_ITEMS = [
   },
   {
     q: "What is Judgy?",
-    a: "Eco Groot's own checker in Cascade-Verify — a local hybrid algorithm, not a separate LLM. It peeks at the question for a difficulty hint (tunes the PASS bar), then grades the small model’s answer before any expensive escalate.",
+    a: "Eco AI’s own checker in Cascade-Verify — a local hybrid algorithm, not a separate LLM. It peeks at the question for a difficulty hint (tunes the PASS bar), then grades the small model’s answer before any expensive escalate.",
   },
   {
     q: "How does the waiting list WhatsApp notify work?",
-    a: "Submit the form on /waiting-list. The API builds a message with your name, email, interest, note, and list position, then targets WhatsApp 01852044051. Without API keys it opens a prefilled wa.me chat; with CallMeBot, Twilio, or a webhook URL it can auto-send.",
+    a: `Submit the form on /waiting-list. The API builds a message with your name, email, interest, note, and list position, then targets WhatsApp ${WAITLIST_WHATSAPP_PHONE_LOCAL}. Without API keys it opens a prefilled wa.me chat; with CallMeBot, Twilio, or a webhook URL it can auto-send.`,
   },
   {
     q: "Why are Pro and Master cheaper than typical AI tools?",

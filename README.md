@@ -39,7 +39,7 @@ Optional API keys: copy `.env.example` → `.env.local`, or paste keys in **`/ap
 
 Demo data lives in `.data/store.json` (gitignored). Delete it to reset.
 
-**Waiting list** (`/waiting-list`): each signup can notify WhatsApp **01852044051** (prefilled `wa.me`; optional auto-send via CallMeBot / Twilio / webhook — see `.env.example`).
+**Waiting list** (`/waiting-list`): each signup can notify WhatsApp **01234567890** (prefilled `wa.me`; optional auto-send via CallMeBot / Twilio / webhook — see `.env.example`).
 
 ## Deploy
 
@@ -87,7 +87,7 @@ vercel --prod   # production
 ```
 Browser
   /                 marketing + open Limited entry
-  /waiting-list     early-access form → WhatsApp notify (01852044051)
+  /waiting-list     early-access form → WhatsApp notify (01234567890)
   /judgy            Judgy explainer
   /login            open session (no invite)
   /app/*            product (wallet, chat, plans, video, settings)
